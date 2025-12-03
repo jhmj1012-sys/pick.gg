@@ -1,1 +1,1 @@
-# best-pick
+# pick.gg
