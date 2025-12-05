@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PICK.GG - LoL Pick Simulator</title>
     <style>
-        /* --- 기본 테마 설정 --- */
+        /* --- 기존 CSS 유지 --- */
         :root {
             --bg-color: #010a13;
             --text-color: #f0f0f0;
@@ -135,19 +135,13 @@
         .champ-card.banned-highlight { border-color: var(--danger-color); opacity: 0.5; filter: grayscale(100%); } /* Ban 선택 */
         
         .champ-card.selected img { filter: brightness(1.1); }
-	.champ-card span { 
-    		display: block; 
-    		font-size: 12px; 
-    		margin-top: 5px; 
-    		color: #888; 
- 	 	white-space: nowrap; 
- 	 	overflow: hidden;         
-  		text-overflow: ellipsis;  
-   	 	letter-spacing: -0.5px;  
-	}        
-	.champ-card.selected span { color: var(--accent-color); font-weight: bold; }
+        .champ-card span { 
+            display: block; font-size: 12px; margin-top: 5px; color: #888; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.5px;  
+        }        
+        .champ-card.selected span { color: var(--accent-color); font-weight: bold; }
 
-        /* --- Step 3 (Ban) New UI --- */
+        /* --- Step 3 (Ban) UI --- */
         #ban-status-bar {
             display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;
             padding: 15px; background: rgba(50, 10, 10, 0.3); border: 1px solid #522; 
@@ -213,7 +207,11 @@
         .recommend-card.wildcard { border-left-color: var(--danger-color); background: #251010; }
         .recommend-img { width: 64px; height: 64px; border: 1px solid #555; }
         .rec-info h3 { margin: 0 0 5px 0; color: var(--accent-color); font-size: 1.2rem; }
+        .rec-score { float: right; font-size: 1.5rem; color: #fff; font-weight: bold; }
         .wildcard .rec-info h3 { color: var(--danger-color); }
+        .rec-tags { font-size: 0.8rem; color: #888; margin-top: 5px; }
+        .tag-match { color: #8f8; }
+        .tag-bad { color: #f88; }
 
         /* --- 모달창 --- */
         #modal-overlay {
@@ -234,7 +232,6 @@
             height: 350px; overflow-y: auto; overflow-x: hidden; align-content: start;
         }
         
-        /* 이미지 깨짐 방지 꼼수 */
         img { text-indent: -10000px; }
         img:not([src]), img[src=""] { visibility: hidden; }
 
@@ -295,24 +292,15 @@
         </div>
     </div>
 
-    <!-- Step 3: 통합 밴 단계 (수정됨) -->
+    <!-- Step 3: 통합 밴 단계 -->
     <div id="step-3" class="step">
         <h2>금지 챔피언 선택 (BAN)</h2>
         <p style="color:#888; margin-bottom:10px;">이번 게임에서 금지된 챔피언을 선택하세요. (<span id="ban-count" style="color:var(--danger-color)">0</span> / 10)</p>
-        
-        <!-- 선택된 밴 목록 표시 -->
-        <div id="ban-status-bar">
-            <!-- JS로 밴 아이콘 채워짐 -->
-        </div>
-
-        <!-- 밴 선택용 검색 및 그리드 -->
+        <div id="ban-status-bar"></div>
         <div class="pool-search-container">
             <input type="text" id="ban-search-input" class="pool-search-bar" placeholder="금지할 챔피언 검색..." onkeyup="filterBanGrid()">
         </div>
-        <div class="champ-grid" id="ban-selection-grid">
-            <!-- JS로 전체 챔피언 채워짐 -->
-        </div>
-
+        <div class="champ-grid" id="ban-selection-grid"></div>
         <div class="btn-group">
             <button class="btn btn-secondary" onclick="goToStep(2)">이전 단계</button>
             <button class="btn" onclick="goToStep(4)">픽(Pick) 단계로</button>
@@ -323,7 +311,6 @@
     <div id="step-4" class="step">
         <h2>픽(PICK) 상황 입력</h2>
         
-        <!-- 밴 목록 표시 (수정됨) -->
         <div style="text-align:center; margin-bottom:5px;">
             <span style="font-size:12px; color:#ff5c5c;">BANNED CHAMPIONS</span>
         </div>
@@ -362,7 +349,6 @@
     </div>
 </div>
 
-<!-- 픽 모달창 -->
 <div id="modal-overlay">
     <div class="modal-content">
         <h3 style="margin-top:0; color:var(--accent-color);">챔피언 선택</h3>
@@ -374,179 +360,151 @@
 </div>
 
 <script>
-    // --- 챔피언 데이터베이스 ---
-    const championDB = [
+    // [1] 데이터베이스 초기화 및 확장
+    // 기본 DB는 간단하게 유지하고, 스크립트 실행 시 상세 스탯을 주입하는 방식
+    const rawDB = [
         { id: 'Aatrox', name: '아트록스', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Ahri', name: '아리', roles: ['MID'], damage: 'AP', type: 'MAGE' },
         { id: 'Akali', name: '아칼리', roles: ['MID', 'TOP'], damage: 'AP', type: 'ASSASSIN' },
-        { id: 'Akshan', name: '아크샨', roles: ['MID', 'TOP'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Alistar', name: '알리스타', roles: ['SUPPORT'], damage: 'MIX', type: 'TANK' },
-        { id: 'Ambessa', name: '암베사', roles: ['TOP', 'JUNGLE'], damage: 'AD', type: 'FIGHTER' },
+        { id: 'Alistar', name: '알리스타', roles: ['SUPPORT'], damage: 'AP', type: 'TANK' },
         { id: 'Amumu', name: '아무무', roles: ['JUNGLE', 'SUPPORT'], damage: 'AP', type: 'TANK' },
-        { id: 'Anivia', name: '애니비아', roles: ['MID'], damage: 'AP', type: 'MAGE' },
-        { id: 'Annie', name: '애니', roles: ['MID', 'SUPPORT'], damage: 'AP', type: 'MAGE' },
-        { id: 'Aphelios', name: '아펠리오스', roles: ['ADC'], damage: 'AD', type: 'MARKSMAN' },
         { id: 'Ashe', name: '애쉬', roles: ['ADC', 'SUPPORT'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'AurelionSol', name: '아우렐리온 솔', roles: ['MID'], damage: 'AP', type: 'MAGE' },
-        { id: 'Aurora', name: '오로라', roles: ['MID', 'TOP'], damage: 'AP', type: 'MAGE' },
         { id: 'Azir', name: '아지르', roles: ['MID'], damage: 'AP', type: 'MAGE' },
-        { id: 'Bard', name: '바드', roles: ['SUPPORT'], damage: 'AP', type: 'SUPPORT' },
-        { id: 'Belveth', name: '벨베스', roles: ['JUNGLE'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Blitzcrank', name: '블리츠크랭크', roles: ['SUPPORT'], damage: 'AP', type: 'TANK' },
-        { id: 'Brand', name: '브랜드', roles: ['SUPPORT', 'JUNGLE', 'MID'], damage: 'AP', type: 'MAGE' },
         { id: 'Braum', name: '브라움', roles: ['SUPPORT'], damage: 'MIX', type: 'TANK' },
-        { id: 'Briar', name: '브라이어', roles: ['JUNGLE', 'TOP'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Caitlyn', name: '케이틀린', roles: ['ADC'], damage: 'AD', type: 'MARKSMAN' },
         { id: 'Camille', name: '카밀', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Cassiopeia', name: '카시오페아', roles: ['MID', 'TOP'], damage: 'AP', type: 'MAGE' },
-        { id: 'Chogath', name: '초가스', roles: ['TOP', 'MID'], damage: 'AP', type: 'TANK' },
-        { id: 'Corki', name: '코르키', roles: ['MID', 'ADC'], damage: 'MIX', type: 'MARKSMAN' },
         { id: 'Darius', name: '다리우스', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Diana', name: '다이애나', roles: ['JUNGLE', 'MID'], damage: 'AP', type: 'ASSASSIN' },
         { id: 'DrMundo', name: '문도 박사', roles: ['TOP', 'JUNGLE'], damage: 'MIX', type: 'TANK' },
-        { id: 'Draven', name: '드레이븐', roles: ['ADC'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Ekko', name: '에코', roles: ['JUNGLE', 'MID'], damage: 'AP', type: 'ASSASSIN' },
-        { id: 'Elise', name: '엘리스', roles: ['JUNGLE'], damage: 'AP', type: 'ASSASSIN' },
-        { id: 'Evelynn', name: '이블린', roles: ['JUNGLE'], damage: 'AP', type: 'ASSASSIN' },
         { id: 'Ezreal', name: '이즈리얼', roles: ['ADC'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Fiddlesticks', name: '피들스틱', roles: ['JUNGLE', 'SUPPORT'], damage: 'AP', type: 'MAGE' },
         { id: 'Fiora', name: '피오라', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Fizz', name: '피즈', roles: ['MID'], damage: 'AP', type: 'ASSASSIN' },
-        { id: 'Galio', name: '갈리오', roles: ['MID', 'SUPPORT'], damage: 'AP', type: 'TANK' },
-        { id: 'Gangplank', name: '갱플랭크', roles: ['TOP', 'MID'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Garen', name: '가렌', roles: ['TOP', 'MID'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Gnar', name: '나르', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Gragas', name: '그라가스', roles: ['JUNGLE', 'TOP', 'MID', 'SUPPORT'], damage: 'AP', type: 'TANK' },
-        { id: 'Graves', name: '그레이브즈', roles: ['JUNGLE'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Gwen', name: '그웬', roles: ['TOP', 'JUNGLE'], damage: 'AP', type: 'FIGHTER' },
         { id: 'Hecarim', name: '헤카림', roles: ['JUNGLE'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Heimerdinger', name: '하이머딩거', roles: ['SUPPORT', 'MID', 'TOP'], damage: 'AP', type: 'MAGE' },
-        { id: 'Hwei', name: '흐웨이', roles: ['MID', 'SUPPORT'], damage: 'AP', type: 'MAGE' },
-        { id: 'Illaoi', name: '일라오이', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Irelia', name: '이렐리아', roles: ['TOP', 'MID'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Ivern', name: '아이번', roles: ['JUNGLE'], damage: 'AP', type: 'SUPPORT' },
         { id: 'Janna', name: '잔나', roles: ['SUPPORT'], damage: 'AP', type: 'SUPPORT' },
         { id: 'JarvanIV', name: '자르반 4세', roles: ['JUNGLE'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Jax', name: '잭스', roles: ['TOP', 'JUNGLE'], damage: 'MIX', type: 'FIGHTER' },
         { id: 'Jayce', name: '제이스', roles: ['TOP', 'MID'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Jhin', name: '진', roles: ['ADC'], damage: 'AD', type: 'MARKSMAN' },
         { id: 'Jinx', name: '징크스', roles: ['ADC'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'KSante', name: '크산테', roles: ['TOP'], damage: 'AD', type: 'TANK' }, 
         { id: 'Kaisa', name: '카이사', roles: ['ADC'], damage: 'MIX', type: 'MARKSMAN' },
-        { id: 'Kalista', name: '칼리스타', roles: ['ADC', 'TOP'], damage: 'AD', type: 'MARKSMAN' },
         { id: 'Karma', name: '카르마', roles: ['SUPPORT', 'MID'], damage: 'AP', type: 'MAGE' },
-        { id: 'Karthus', name: '카서스', roles: ['JUNGLE', 'ADC'], damage: 'AP', type: 'MAGE' },
-        { id: 'Kassadin', name: '카사딘', roles: ['MID'], damage: 'AP', type: 'ASSASSIN' },
-        { id: 'Katarina', name: '카타리나', roles: ['MID'], damage: 'AP', type: 'ASSASSIN' },
-        { id: 'Kayle', name: '케일', roles: ['TOP', 'MID'], damage: 'MIX', type: 'FIGHTER' },
         { id: 'Kayn', name: '케인', roles: ['JUNGLE'], damage: 'AD', type: 'ASSASSIN' },
-        { id: 'Kennen', name: '케넨', roles: ['TOP', 'MID'], damage: 'AP', type: 'MAGE' },
         { id: 'Khazix', name: '카직스', roles: ['JUNGLE'], damage: 'AD', type: 'ASSASSIN' },
-        { id: 'Kindred', name: '킨드레드', roles: ['JUNGLE'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Kled', name: '클레드', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'KogMaw', name: '코그모', roles: ['ADC'], damage: 'MIX', type: 'MARKSMAN' },
-        { id: 'Leblanc', name: '르블랑', roles: ['MID'], damage: 'AP', type: 'ASSASSIN' },
         { id: 'LeeSin', name: '리신', roles: ['JUNGLE'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Leona', name: '레오나', roles: ['SUPPORT'], damage: 'MIX', type: 'TANK' },
-        { id: 'Lillia', name: '릴리아', roles: ['JUNGLE'], damage: 'AP', type: 'FIGHTER' },
-        { id: 'Lissandra', name: '리산드라', roles: ['MID'], damage: 'AP', type: 'MAGE' },
         { id: 'Lucian', name: '루시안', roles: ['ADC', 'MID'], damage: 'AD', type: 'MARKSMAN' },
         { id: 'Lulu', name: '룰루', roles: ['SUPPORT'], damage: 'AP', type: 'SUPPORT' },
         { id: 'Lux', name: '럭스', roles: ['SUPPORT', 'MID'], damage: 'AP', type: 'MAGE' },
         { id: 'Malphite', name: '말파이트', roles: ['TOP', 'MID', 'SUPPORT'], damage: 'AP', type: 'TANK' },
-        { id: 'Malzahar', name: '말자하', roles: ['MID'], damage: 'AP', type: 'MAGE' },
-        { id: 'Maokai', name: '마오카이', roles: ['SUPPORT', 'JUNGLE', 'TOP'], damage: 'AP', type: 'TANK' },
         { id: 'MasterYi', name: '마스터 이', roles: ['JUNGLE'], damage: 'AD', type: 'ASSASSIN' },
-        { id: 'Mel', name: '멜', roles: ['MID', 'SUPPORT'], damage: 'AP', type: 'MAGE' },
-        { id: 'Milio', name: '밀리오', roles: ['SUPPORT'], damage: 'AP', type: 'SUPPORT' },
-        { id: 'MissFortune', name: '미스 포츈', roles: ['ADC', 'SUPPORT'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'MonkeyKing', name: '오공', roles: ['JUNGLE', 'TOP'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Mordekaiser', name: '모데카이저', roles: ['TOP'], damage: 'AP', type: 'FIGHTER' },
         { id: 'Morgana', name: '모르가나', roles: ['SUPPORT', 'JUNGLE'], damage: 'AP', type: 'MAGE' },
-        { id: 'Naafiri', name: '나피리', roles: ['MID'], damage: 'AD', type: 'ASSASSIN' },
         { id: 'Nami', name: '나미', roles: ['SUPPORT'], damage: 'AP', type: 'SUPPORT' },
         { id: 'Nasus', name: '나서스', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Neeko', name: '니코', roles: ['MID', 'SUPPORT'], damage: 'AP', type: 'MAGE' },
+        { id: 'Nautilus', name: '노틸러스', roles: ['SUPPORT'], damage: 'AP', type: 'TANK' },
         { id: 'Nidalee', name: '니달리', roles: ['JUNGLE'], damage: 'AP', type: 'ASSASSIN' },
-        { id: 'Nilah', name: '닐라', roles: ['ADC'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Nocturne', name: '녹턴', roles: ['JUNGLE'], damage: 'AD', type: 'ASSASSIN' },
-        { id: 'Nunu', name: '누누와 윌럼프', roles: ['JUNGLE'], damage: 'AP', type: 'TANK' },
-        { id: 'Olaf', name: '올라프', roles: ['TOP', 'JUNGLE'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Orianna', name: '오리아나', roles: ['MID'], damage: 'AP', type: 'MAGE' },
         { id: 'Ornn', name: '오른', roles: ['TOP'], damage: 'MIX', type: 'TANK' },
-        { id: 'Pantheon', name: '판테온', roles: ['MID', 'TOP', 'SUPPORT'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Poppy', name: '뽀삐', roles: ['JUNGLE', 'TOP', 'SUPPORT'], damage: 'AD', type: 'TANK' },
         { id: 'Pyke', name: '파이크', roles: ['SUPPORT'], damage: 'AD', type: 'ASSASSIN' },
-        { id: 'Qiyana', name: '키아나', roles: ['MID', 'JUNGLE'], damage: 'AD', type: 'ASSASSIN' },
-        { id: 'Quinn', name: '퀸', roles: ['TOP'], damage: 'AD', type: 'MARKSMAN' },
         { id: 'Rakan', name: '라칸', roles: ['SUPPORT'], damage: 'AP', type: 'SUPPORT' },
-        { id: 'RekSai', name: '렉사이', roles: ['JUNGLE'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Rell', name: '렐', roles: ['SUPPORT', 'JUNGLE'], damage: 'MIX', type: 'TANK' },
-        { id: 'Renata', name: '레나타 글라스크', roles: ['SUPPORT'], damage: 'AP', type: 'SUPPORT' },
         { id: 'Renekton', name: '레넥톤', roles: ['TOP', 'MID'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Rengar', name: '렝가', roles: ['JUNGLE', 'TOP'], damage: 'AD', type: 'ASSASSIN' },
         { id: 'Riven', name: '리븐', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Ryze', name: '라이즈', roles: ['MID', 'TOP'], damage: 'AP', type: 'MAGE' },
         { id: 'Samira', name: '사미라', roles: ['ADC'], damage: 'AD', type: 'MARKSMAN' },
         { id: 'Sejuani', name: '세주아니', roles: ['JUNGLE', 'TOP'], damage: 'AP', type: 'TANK' },
-        { id: 'Senna', name: '세나', roles: ['SUPPORT', 'ADC'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Seraphine', name: '세라핀', roles: ['SUPPORT', 'ADC', 'MID'], damage: 'AP', type: 'MAGE' },
         { id: 'Sett', name: '세트', roles: ['TOP', 'SUPPORT'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Shaco', name: '샤코', roles: ['JUNGLE', 'SUPPORT'], damage: 'AD', type: 'ASSASSIN' },
         { id: 'Shen', name: '쉔', roles: ['TOP', 'SUPPORT'], damage: 'MIX', type: 'TANK' },
-        { id: 'Shyvana', name: '쉬바나', roles: ['JUNGLE'], damage: 'AP', type: 'FIGHTER' },
-        { id: 'Singed', name: '신지드', roles: ['TOP'], damage: 'AP', type: 'TANK' },
         { id: 'Sion', name: '사이온', roles: ['TOP'], damage: 'AD', type: 'TANK' },
-        { id: 'Sivir', name: '시비르', roles: ['ADC'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Skarner', name: '스카너', roles: ['JUNGLE', 'TOP'], damage: 'MIX', type: 'TANK' },
-        { id: 'Smolder', name: '스몰더', roles: ['ADC', 'MID'], damage: 'AD', type: 'MARKSMAN' },
         { id: 'Sona', name: '소나', roles: ['SUPPORT'], damage: 'AP', type: 'SUPPORT' },
         { id: 'Soraka', name: '소라카', roles: ['SUPPORT'], damage: 'AP', type: 'SUPPORT' },
-        { id: 'Swain', name: '스웨인', roles: ['SUPPORT', 'MID', 'ADC'], damage: 'AP', type: 'MAGE' },
         { id: 'Sylas', name: '사일러스', roles: ['MID', 'JUNGLE'], damage: 'AP', type: 'FIGHTER' },
         { id: 'Syndra', name: '신드라', roles: ['MID'], damage: 'AP', type: 'MAGE' },
-        { id: 'TahmKench', name: '탐 켄치', roles: ['TOP', 'SUPPORT'], damage: 'AP', type: 'TANK' },
-        { id: 'Taliyah', name: '탈리야', roles: ['JUNGLE', 'MID'], damage: 'AP', type: 'MAGE' },
         { id: 'Talon', name: '탈론', roles: ['JUNGLE', 'MID'], damage: 'AD', type: 'ASSASSIN' },
-        { id: 'Taric', name: '타릭', roles: ['SUPPORT'], damage: 'MIX', type: 'TANK' },
-        { id: 'Teemo', name: '티모', roles: ['TOP', 'SUPPORT'], damage: 'AP', type: 'MAGE' },
         { id: 'Thresh', name: '쓰레쉬', roles: ['SUPPORT'], damage: 'AP', type: 'TANK' },
         { id: 'Tristana', name: '트리스타나', roles: ['ADC', 'MID'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Trundle', name: '트런들', roles: ['TOP', 'JUNGLE'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Tryndamere', name: '트린다미어', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'TwistedFate', name: '트위스티드 페이트', roles: ['MID'], damage: 'AP', type: 'MAGE' },
-        { id: 'Twitch', name: '트위치', roles: ['ADC', 'SUPPORT'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Udyr', name: '우디르', roles: ['JUNGLE', 'TOP'], damage: 'MIX', type: 'FIGHTER' },
-        { id: 'Urgot', name: '우르곳', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Varus', name: '바루스', roles: ['ADC', 'MID'], damage: 'MIX', type: 'MARKSMAN' },
         { id: 'Vayne', name: '베인', roles: ['ADC', 'TOP'], damage: 'AD', type: 'MARKSMAN' },
         { id: 'Veigar', name: '베이가', roles: ['MID', 'SUPPORT'], damage: 'AP', type: 'MAGE' },
-        { id: 'Vex', name: '벡스', roles: ['MID'], damage: 'AP', type: 'MAGE' },
         { id: 'Vi', name: '바이', roles: ['JUNGLE'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Vladimir', name: '블라디미르', roles: ['MID', 'TOP'], damage: 'AP', type: 'MAGE' },
-        { id: 'Warwick', name: '워윅', roles: ['JUNGLE', 'TOP'], damage: 'MIX', type: 'FIGHTER' },
         { id: 'Xayah', name: '자야', roles: ['ADC'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Xerath', name: '제라스', roles: ['SUPPORT', 'MID'], damage: 'AP', type: 'MAGE' },
-        { id: 'XinZhao', name: '신 짜오', roles: ['JUNGLE'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Yasuo', name: '야스오', roles: ['MID', 'TOP'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Yone', name: '요네', roles: ['MID', 'TOP'], damage: 'AD', type: 'FIGHTER' },
-        { id: 'Yorick', name: '요릭', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Yuumi', name: '유미', roles: ['SUPPORT'], damage: 'AP', type: 'SUPPORT' },
-        { id: 'Yunara', name: '유나라', roles: ['ADC'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Zaahen', name: '자헨', roles: ['TOP'], damage: 'AD', type: 'FIGHTER' },
         { id: 'Zac', name: '자크', roles: ['JUNGLE', 'TOP'], damage: 'AP', type: 'TANK' },
         { id: 'Zed', name: '제드', roles: ['MID', 'JUNGLE'], damage: 'AD', type: 'ASSASSIN' },
-        { id: 'Zeri', name: '제리', roles: ['ADC'], damage: 'AD', type: 'MARKSMAN' },
-        { id: 'Ziggs', name: '직스', roles: ['ADC', 'MID'], damage: 'AP', type: 'MAGE' },
-        { id: 'Zilean', name: '질리언', roles: ['SUPPORT', 'MID'], damage: 'AP', type: 'SUPPORT' },
         { id: 'Zoe', name: '조이', roles: ['MID'], damage: 'AP', type: 'MAGE' },
-        { id: 'Zyra', name: '자이라', roles: ['SUPPORT'], damage: 'AP', type: 'MAGE' }
     ];
 
+    // DB 확장 함수
+    function expandChampionData(db) {
+        // 특정 챔피언에 대한 상세 데이터 오버라이드 (예시 데이터)
+        const overrides = {
+            'Malphite': { 
+                stats: { meta: 8, ad_ap: 1, tankiness: 10, burst: 6, dps: 2, cc: 9, safety: 6 },
+                synergy: ['Yasuo', 'Orianna'], 
+                tags: ['Initiator', 'Tank', 'Anti-AD'] 
+            },
+            'Lucian': {
+                stats: { meta: 7, ad_ap: 10, tankiness: 2, burst: 9, dps: 7, cc: 1, safety: 7 },
+                synergy: ['Nami', 'Braum', 'Milio'],
+                tags: ['Early_Game', 'Mobile']
+            },
+            'Nami': {
+                stats: { meta: 6, ad_ap: 0, tankiness: 2, burst: 3, dps: 2, cc: 7, safety: 5 },
+                synergy: ['Lucian', 'Draven'],
+                tags: ['Enchanter']
+            },
+            'Yasuo': {
+                stats: { meta: 6, ad_ap: 10, tankiness: 4, burst: 8, dps: 9, cc: 5, safety: 4 },
+                synergy: ['Malphite', 'Diana', 'Zac'],
+                tags: ['Hypercarry', 'Combo']
+            },
+            'Ornn': {
+                stats: { meta: 9, ad_ap: 3, tankiness: 10, burst: 5, dps: 4, cc: 9, safety: 7 },
+                synergy: [],
+                tags: ['Tank', 'Scaler', 'Utility']
+            },
+            'Vayne': {
+                stats: { meta: 5, ad_ap: 10, tankiness: 2, burst: 6, dps: 10, cc: 3, safety: 4 },
+                synergy: ['Lulu'],
+                tags: ['Tank_Buster', 'Late_Game']
+            },
+            'Zed': {
+                stats: { meta: 6, ad_ap: 10, tankiness: 2, burst: 10, dps: 4, cc: 1, safety: 8 },
+                synergy: [],
+                tags: ['Assassin', 'Squishy_Killer']
+            }
+        };
+
+        return db.map(c => {
+            const extra = overrides[c.id] || {};
+            
+            // 기본값 자동 생성 (오버라이드 없으면 타입 기반 추정)
+            const defaultStats = {
+                meta: 5,
+                ad_ap: c.damage === 'AD' ? 10 : (c.damage === 'AP' ? 0 : 5),
+                tankiness: c.type === 'TANK' ? 9 : (c.type === 'FIGHTER' ? 6 : 2),
+                burst: c.type === 'ASSASSIN' || c.type === 'MAGE' ? 8 : 4,
+                dps: c.type === 'MARKSMAN' ? 9 : 4,
+                cc: c.type === 'TANK' || c.roles.includes('SUPPORT') ? 7 : 3,
+                safety: 5
+            };
+
+            return {
+                ...c,
+                stats: extra.stats || defaultStats,
+                synergy: extra.synergy || [],
+                tags: extra.tags || []
+            };
+        });
+    }
+
+    const championDB = expandChampionData(rawDB);
+
+    // --- State Management ---
     let state = {
         myLane: null,
         myPool: [],
-        bannedChampions: [], // [수정] 통합된 밴 목록
+        bannedChampions: [], 
         draft: {
             ally: { TOP: null, JUNGLE: null, MID: null, ADC: null, SUPPORT: null },
             enemy: { TOP: null, JUNGLE: null, MID: null, ADC: null, SUPPORT: null }
@@ -555,16 +513,10 @@
     };
 
     function getImg(id) {
-        const customImages = {
-            'Mel': 'https://opgg-static.akamaized.net/meta/images/lol/15.24.1/champion/Mel.png',
-            'Yunara': 'https://opgg-static.akamaized.net/meta/images/lol/15.24.1/champion/Yunara.png',
-            'Zaahen': 'https://opgg-static.akamaized.net/meta/images/lol/15.24.1/champion/Zaahen.png',
-        };
-        if (customImages[id]) return customImages[id];
         return `https://ddragon.leagueoflegends.com/cdn/14.23.1/img/champion/${id}.png`;
     }
 
-    // --- Step 1 ---
+    // --- Step 1 ~ 3 UI Logic (기존과 동일하지만 간단히 유지) ---
     function selectLane(lane) {
         if(state.myLane !== lane) {
             state.myPool = [];
@@ -578,21 +530,13 @@
     function goToStep(num) {
         if(num === 2 && !state.myLane) return alert('라인을 선택해주세요!');
         if(num >= 3 && state.myPool.length === 0) return alert('챔피언을 선택해주세요!');
-
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         document.getElementById('step-' + num).classList.add('active');
-
-        if(num === 2) {
-            renderPool();
-            document.getElementById('pool-search-input').value = ''; 
-        }
-        if(num === 3) {
-            initBanPhase(); // [수정] 통합 밴 화면 초기화
-        }
+        if(num === 2) renderPool();
+        if(num === 3) initBanPhase();
         if(num === 4) initDraft();
     }
 
-    // --- Step 2 ---
     function renderPool() {
         const grid = document.getElementById('pool-grid');
         grid.innerHTML = '';
@@ -620,129 +564,77 @@
 
     function filterPoolGrid() {
         const query = document.getElementById('pool-search-input').value.toLowerCase();
-        const cards = document.querySelectorAll('#pool-grid .champ-card');
-        cards.forEach(card => {
-            const name = card.dataset.name.toLowerCase();
-            if(name.includes(query)) card.style.display = 'block'; 
-            else card.style.display = 'none'; 
+        document.querySelectorAll('#pool-grid .champ-card').forEach(card => {
+            card.style.display = card.dataset.name.toLowerCase().includes(query) ? 'block' : 'none';
         });
     }
 
-    // --- Step 3 (Integrated Ban Phase) ---
+    // --- Ban Phase ---
     function initBanPhase() {
-        renderBannedList(); // 상단 밴 목록 표시
-        renderBanSelectionGrid(); // 하단 전체 챔피언 그리드 표시
-        document.getElementById('ban-search-input').value = '';
+        renderBannedList();
+        renderBanSelectionGrid();
     }
-
-    // 1. 상단 밴 상태 바 렌더링
     function renderBannedList() {
         const container = document.getElementById('ban-status-bar');
         container.innerHTML = '';
-        
         state.bannedChampions.forEach(id => {
             const div = document.createElement('div');
             div.className = 'ban-icon';
             div.innerHTML = `<img src="${getImg(id)}">`;
-            div.onclick = () => toggleBan(id); // 클릭 시 밴 취소
+            div.onclick = () => toggleBan(id);
             container.appendChild(div);
         });
-
         document.getElementById('ban-count').innerText = state.bannedChampions.length;
     }
-
-    // 2. 하단 밴 선택 그리드 렌더링
     function renderBanSelectionGrid() {
         const grid = document.getElementById('ban-selection-grid');
         grid.innerHTML = '';
-        
-        // 이름 순 정렬해서 보여주기
-        const sortedDB = [...championDB].sort((a, b) => a.name.localeCompare(b.name));
-
-        sortedDB.forEach(c => {
+        [...championDB].sort((a,b)=>a.name.localeCompare(b.name)).forEach(c => {
             const div = document.createElement('div');
-            div.className = 'champ-card';
+            div.className = 'champ-card' + (state.bannedChampions.includes(c.id) ? ' banned-highlight' : '');
             div.dataset.name = c.name;
-
-            // 이미 밴 된 챔피언 표시
-            if(state.bannedChampions.includes(c.id)) {
-                div.classList.add('banned-highlight');
-            }
-
             div.innerHTML = `<img src="${getImg(c.id)}"><span style="color:#ccc">${c.name}</span>`;
             div.onclick = () => toggleBan(c.id);
             grid.appendChild(div);
         });
     }
-
-    // 3. 밴 토글 함수 (추가/삭제)
     function toggleBan(id) {
-        if (state.bannedChampions.includes(id)) {
-            // 이미 있으면 삭제
-            state.bannedChampions = state.bannedChampions.filter(c => c !== id);
-        } else {
-            // 없으면 추가 (10개 제한)
-            if (state.bannedChampions.length >= 10) {
-                alert("최대 10명까지만 금지할 수 있습니다.");
-                return;
-            }
+        if (state.bannedChampions.includes(id)) state.bannedChampions = state.bannedChampions.filter(c => c !== id);
+        else {
+            if (state.bannedChampions.length >= 10) return alert("최대 10명까지만 금지할 수 있습니다.");
             state.bannedChampions.push(id);
         }
-        // UI 갱신
         renderBannedList();
         renderBanSelectionGrid();
-        
-        // 검색 필터 상태 유지
         filterBanGrid();
     }
-
-    // 4. 밴 검색 필터
     function filterBanGrid() {
         const query = document.getElementById('ban-search-input').value.toLowerCase();
-        const cards = document.querySelectorAll('#ban-selection-grid .champ-card');
-        cards.forEach(card => {
-            const name = card.dataset.name.toLowerCase();
-            if(name.includes(query)) card.style.display = 'block';
-            else card.style.display = 'none';
+        document.querySelectorAll('#ban-selection-grid .champ-card').forEach(card => {
+            card.style.display = card.dataset.name.toLowerCase().includes(query) ? 'block' : 'none';
         });
     }
 
-    // --- Step 4 (Pick) ---
+    // --- Pick Phase ---
     function initDraft() {
-        // [수정] 픽 화면 상단에 밴 된 챔피언 표시
         const banDisplay = document.getElementById('ban-display-bar');
         banDisplay.innerHTML = '';
-        if(state.bannedChampions.length === 0) {
-            banDisplay.innerHTML = '<span style="font-size:12px; color:#666;">금지된 챔피언 없음</span>';
-        } else {
-            state.bannedChampions.forEach(id => {
-                const img = document.createElement('img');
-                img.src = getImg(id);
-                img.className = 'banned-small';
-                img.title = championDB.find(c => c.id === id).name;
-                banDisplay.appendChild(img);
-            });
-        }
+        state.bannedChampions.forEach(id => {
+            const img = document.createElement('img'); img.src = getImg(id); img.className = 'banned-small';
+            banDisplay.appendChild(img);
+        });
 
         const poolBar = document.getElementById('my-pool-bar');
         poolBar.innerHTML = '';
-        if(state.myPool.length === 0) {
-            poolBar.innerHTML = '<span style="color:#666">선택한 챔피언이 없습니다.</span>';
-        } else {
-            state.myPool.forEach(id => {
-                const img = document.createElement('img');
-                img.src = getImg(id);
-                img.className = 'pool-mini-img';
-                img.title = championDB.find(c => c.id === id).name;
-                poolBar.appendChild(img);
-            });
-        }
+        state.myPool.forEach(id => {
+            const img = document.createElement('img'); img.src = getImg(id); img.className = 'pool-mini-img';
+            poolBar.appendChild(img);
+        });
 
         document.querySelectorAll('.slot').forEach(slot => {
             const side = slot.dataset.side;
             const role = slot.dataset.role;
             const id = state.draft[side][role];
-
             if(side === 'ally' && role === state.myLane) {
                 slot.className = 'slot disabled';
                 slot.innerHTML = '<span style="color:var(--accent-color); font-weight:bold; width:100%; text-align:center;">ME</span>';
@@ -762,190 +654,212 @@
     }
 
     function isChampTaken(id) {
-        // 밴 목록 체크
         if (state.bannedChampions.includes(id)) return true;
-        // 픽 목록 체크
-        for (let key in state.draft.ally) { if (state.draft.ally[key] === id) return true; }
-        for (let key in state.draft.enemy) { if (state.draft.enemy[key] === id) return true; }
+        for (let key in state.draft.ally) if (state.draft.ally[key] === id) return true;
+        for (let key in state.draft.enemy) if (state.draft.enemy[key] === id) return true;
         return false;
     }
 
-    // --- 모달 로직 (Pick 전용) ---
     function openSelector(el) {
-        state.currentSelector = { 
-            side: el.dataset.side, 
-            role: el.dataset.role, 
-            dom: el
-        };
-        
+        state.currentSelector = { side: el.dataset.side, role: el.dataset.role, dom: el };
         document.getElementById('modal-overlay').style.display = 'flex';
-        const input = document.getElementById('champ-search');
-        input.value = '';
-        input.focus();
-        renderModal(''); 
+        renderModal('');
     }
-
-    function closeModal() {
-        document.getElementById('modal-overlay').style.display = 'none';
-    }
-
+    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
     function renderModal(query) {
-        const grid = document.getElementById('modal-list');
-        grid.innerHTML = '';
-        
-        const currentRole = state.currentSelector.role;
-        let filtered;
-
-        if (!query) {
-            filtered = championDB.filter(c => c.roles.includes(currentRole));
-        } else {
-            filtered = championDB.filter(c => c.name.includes(query));
-        }
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-        if(filtered.length === 0) {
-            grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:#666;">검색 결과가 없습니다.</div>';
-            return;
-        }
-
+        const grid = document.getElementById('modal-list'); grid.innerHTML = '';
+        const filtered = championDB.filter(c => !query || c.name.includes(query)).sort((a,b)=>a.name.localeCompare(b.name));
         filtered.forEach(c => {
-            const div = document.createElement('div');
-            div.className = 'champ-card';
-            
-            if (isChampTaken(c.id)) {
-                div.style.opacity = '0.3';
-                div.style.cursor = 'not-allowed';
-            }
-
+            const div = document.createElement('div'); div.className = 'champ-card';
+            if (isChampTaken(c.id)) { div.style.opacity = '0.3'; div.style.cursor = 'not-allowed'; }
             div.innerHTML = `<img src="${getImg(c.id)}"><span style="color:#ccc">${c.name}</span>`;
-            
             div.onclick = () => {
                 if (isChampTaken(c.id)) return alert("이미 선택되거나 금지된 챔피언입니다.");
-
                 state.draft[state.currentSelector.side][state.currentSelector.role] = c.id;
-                const dom = state.currentSelector.dom;
-                dom.innerHTML = `<img src="${getImg(c.id)}"><span>${c.name}</span>`;
+                state.currentSelector.dom.innerHTML = `<img src="${getImg(c.id)}"><span>${c.name}</span>`;
                 closeModal();
             };
             grid.appendChild(div);
         });
     }
+    function filterChampions() { renderModal(document.getElementById('champ-search').value); }
 
-    function filterChampions() {
-        renderModal(document.getElementById('champ-search').value);
+
+    // ==========================================================
+    // [2] 핵심 알고리즘 구현: 가중치 점수 계산 (The Engine)
+    // ==========================================================
+    function calculateScore(champ, context) {
+        let score = 0;
+        let reasons = []; // 추천 사유 기록
+
+        // 1. 기본 메타 점수 (가중치 2배)
+        score += champ.stats.meta * 2;
+
+        // 2. 아군 조합 밸런스 보정 (Gap Analysis)
+        if (context.needs.AP && champ.stats.ad_ap < 4) {
+            score += 25; reasons.push("부족한 AP 보완");
+        }
+        if (context.needs.AD && champ.stats.ad_ap > 6) {
+            score += 25; reasons.push("부족한 AD 보완");
+        }
+        if (context.needs.Tank && champ.stats.tankiness > 7) {
+            score += 30; reasons.push("팀내 유일 탱커");
+        }
+        if (context.needs.CC && champ.stats.cc > 7) {
+            score += 15; reasons.push("CC 셔틀 필요");
+        }
+
+        // 3. 시너지 (Synergy) - 특정 챔피언 조합
+        // 아군 챔피언 목록 중에 내 단짝(best_partners)이 있는지 확인
+        let synergyFound = false;
+        context.allies.forEach(ally => {
+            if (champ.synergy.includes(ally.id)) {
+                score += 20;
+                reasons.push(`${ally.name}와 시너지`);
+                synergyFound = true;
+            }
+        });
+
+        // 4. 적군 조합 대응 (Counter Logic)
+        // A. 맞라이너 상성 (후픽인 경우)
+        if (context.enemyLaner) {
+            // 상세 상성 데이터가 없으므로 태그 기반 모의 계산
+            // 예: 적이 암살자인데 내가 탱커면 가산점
+            if (context.enemyLaner.stats.burst > 7 && champ.stats.tankiness > 7) {
+                score += 15;
+                reasons.push(`${context.enemyLaner.name} 카운터(탱)`);
+            }
+            // 적이 탱커인데 내가 지속딜(DPS)이 좋으면 가산점
+            if (context.enemyLaner.stats.tankiness > 7 && champ.stats.dps > 7) {
+                score += 15;
+                reasons.push("탱커 녹이기 좋음");
+            }
+        } else {
+            // B. 선픽인 경우 (맞라이너 없음)
+            score += champ.stats.safety * 3; // 선픽 안정성 중요
+        }
+
+        // C. 적 전체 조합 특성 대응
+        if (context.enemyStats.avgTankiness < 4 && champ.stats.burst > 7) {
+            score += 10; reasons.push("물몸 학살자");
+        }
+        if (context.enemyStats.avgTankiness > 7 && champ.stats.dps > 7) {
+            score += 10; reasons.push("탱커 처리반");
+        }
+
+        // 난수(Random) 살짝 섞어서 매번 너무 똑같은 결과 방지 (0~5점)
+        score += Math.random() * 5;
+
+        return { score, reasons };
     }
 
-    // --- Recommendation ---
+
+    // ==========================================================
+    // [3] 최종 추천 실행 함수
+    // ==========================================================
     function getRecommendation() {
         const list = document.getElementById('recommendation-list');
         list.innerHTML = '';
 
-        const takenIds = [...state.bannedChampions]; // 밴 목록 추가
-        const allyChamps = [];
-        
-        Object.values(state.draft.ally).forEach(id => { 
-            if(id) {
-                takenIds.push(id);
-                allyChamps.push(championDB.find(c => c.id === id));
-            }
-        });
-        Object.values(state.draft.enemy).forEach(id => { 
-            if(id) takenIds.push(id);
-        });
+        // 1. 상황 인식 (Context Gathering)
+        const allyChamps = Object.values(state.draft.ally).filter(id => id).map(id => championDB.find(c=>c.id===id));
+        const enemyChamps = Object.values(state.draft.enemy).filter(id => id).map(id => championDB.find(c=>c.id===id));
+        const enemyLanerID = state.draft.enemy[state.myLane];
+        const enemyLaner = enemyLanerID ? championDB.find(c => c.id === enemyLanerID) : null;
 
-        // 밸런스 분석
-        let adCount = 0;
-        let apCount = 0;
-        let tankCount = 0;
-
+        // 2. 조합 갭 분석 (Gap Analysis)
+        let totalAD = 0, totalAP = 0, totalTank = 0, totalCC = 0;
         allyChamps.forEach(c => {
-            if (c.damage === 'AD') adCount++;
-            if (c.damage === 'AP') apCount++;
-            if (c.type === 'TANK' || c.damage === 'MIX') tankCount++;
+            if (c.stats.ad_ap > 5) totalAD++; else totalAP++;
+            totalTank += c.stats.tankiness;
+            totalCC += c.stats.cc;
         });
 
-        let adviceMsg = "무난한 픽입니다.";
-        let recommendType = 'ALL'; 
+        const needs = {
+            AD: totalAD < totalAP && totalAD < 2, // AD가 AP보다 적고 2명 미만일 때
+            AP: totalAP < totalAD && totalAP < 2,
+            Tank: totalTank < 15, // 단순 합계가 낮으면 탱커 필요
+            CC: totalCC < 15
+        };
 
-        if (adCount >= 3 && apCount === 0) {
-            adviceMsg = "팀에 AD가 너무 많습니다. <b>AP 챔피언</b>을 추천합니다.";
-            recommendType = 'AP';
-        } else if (apCount >= 3 && adCount === 0) {
-            adviceMsg = "팀에 AP가 너무 많습니다. <b>AD 챔피언</b>을 추천합니다.";
-            recommendType = 'AD';
-        } else if (tankCount === 0 && allyChamps.length >= 2) {
-            adviceMsg = "팀에 탱커가 없습니다. <b>단단한 챔피언</b>이 좋습니다.";
-            recommendType = 'TANK';
-        }
+        // 적군 평균 스탯
+        let enemyTankSum = 0;
+        enemyChamps.forEach(c => enemyTankSum += c.stats.tankiness);
+        const enemyStats = {
+            avgTankiness: enemyChamps.length > 0 ? enemyTankSum / enemyChamps.length : 5
+        };
 
-        let myPicks = championDB.filter(c => state.myPool.includes(c.id) && !takenIds.includes(c.id));
+        const context = {
+            allies: allyChamps,
+            enemies: enemyChamps,
+            enemyLaner: enemyLaner,
+            needs: needs,
+            enemyStats: enemyStats
+        };
+
+        // 3. 챔피언 점수 계산 (Scoring)
+        // 내 챔피언 풀(Top 7) + 나머지 전체(Wildcard 찾기용) 모두 계산
+        const takenIds = [...state.bannedChampions, ...Object.values(state.draft.ally), ...Object.values(state.draft.enemy)];
         
-        let scoredPicks = myPicks.map(c => {
-            let score = 0;
-            if (recommendType === 'AP' && (c.damage === 'AP' || c.damage === 'MIX')) score += 10;
-            if (recommendType === 'AD' && c.damage === 'AD') score += 10;
-            if (recommendType === 'TANK' && (c.type === 'TANK' || c.damage === 'MIX')) score += 10;
-            return { champ: c, score: score + Math.random() * 5 }; 
+        // 내 라인에 갈 수 있는 모든 챔피언 가져오기
+        let candidates = championDB.filter(c => c.roles.includes(state.myLane) && !takenIds.includes(c.id));
+        
+        // 점수 매기기
+        let ranked = candidates.map(c => {
+            const result = calculateScore(c, context);
+            return { 
+                champ: c, 
+                score: result.score, 
+                reasons: result.reasons,
+                isMyPool: state.myPool.includes(c.id)
+            };
         });
 
-        scoredPicks.sort((a, b) => b.score - a.score);
+        // 정렬
+        ranked.sort((a, b) => b.score - a.score);
 
-        if(scoredPicks.length === 0) {
-             list.innerHTML = '<div style="padding:20px; color:#888;">추천 가능한 챔피언이 없습니다.</div>';
+        // 4. 결과 출력
+        // (1) 내 풀 안에서 Top 3
+        const myPoolRanked = ranked.filter(r => r.isMyPool).slice(0, 3);
+        
+        if(myPoolRanked.length === 0) {
+            list.innerHTML = '<div style="padding:20px; color:#888;">내 풀에 남은 챔피언이 없습니다.</div>';
         } else {
-            scoredPicks.slice(0, 3).forEach((item, i) => {
-                const p = item.champ;
-                let reason = "숙련도 기반 추천";
-                if(item.score > 8) reason = `팀 밸런스 최적화 (${recommendType} 필요)`;
-                
+            myPoolRanked.forEach((item, i) => {
+                const reasonText = item.reasons.length > 0 ? item.reasons.join(', ') : '무난한 픽';
                 list.innerHTML += `
                     <div class="recommend-card">
-                        <img src="${getImg(p.id)}" class="recommend-img">
-                        <div class="rec-info">
-                            <h3>BEST ${i+1}: ${p.name}</h3>
-                            <small>${reason}</small>
+                        <img src="${getImg(item.champ.id)}" class="recommend-img">
+                        <div class="rec-info" style="flex:1">
+                            <h3>BEST ${i+1}: ${item.champ.name}</h3>
+                            <div class="rec-tags">
+                                <span class="tag-match">${reasonText}</span>
+                            </div>
                         </div>
+                        <div class="rec-score">${Math.round(item.score)}점</div>
                     </div>`;
             });
         }
 
-        let others = championDB.filter(c => 
-            !state.myPool.includes(c.id) && 
-            c.roles.includes(state.myLane) && 
-            !takenIds.includes(c.id)
-        );
-        
-        let bestHidden = others.filter(c => {
-             if (recommendType === 'AP') return c.damage === 'AP';
-             if (recommendType === 'AD') return c.damage === 'AD';
-             if (recommendType === 'TANK') return c.type === 'TANK';
-             return true;
-        });
-
-        if(bestHidden.length > 0) {
-            const hidden = bestHidden[Math.floor(Math.random() * bestHidden.length)];
-            list.innerHTML += `
-                <div class="recommend-card wildcard">
-                    <img src="${getImg(hidden.id)}" class="recommend-img">
-                    <div class="rec-info">
-                        <h3>HIDDEN GEM: ${hidden.name}</h3>
-                        <small>${adviceMsg}</small>
-                    </div>
-                </div>`;
-        } else if (others.length > 0) {
-            const hidden = others[Math.floor(Math.random() * others.length)];
+        // (2) 히든 꿀픽 (내 풀 밖에서 점수 1등)
+        const wildcard = ranked.find(r => !r.isMyPool);
+        if (wildcard) {
+             const reasonText = wildcard.reasons.length > 0 ? wildcard.reasons.join(', ') : '상황상 최적의 픽';
              list.innerHTML += `
                 <div class="recommend-card wildcard">
-                    <img src="${getImg(hidden.id)}" class="recommend-img">
-                    <div class="rec-info">
-                        <h3>HIDDEN GEM: ${hidden.name}</h3>
-                        <small>변수 창출을 위한 조커 픽</small>
+                    <img src="${getImg(wildcard.champ.id)}" class="recommend-img">
+                    <div class="rec-info" style="flex:1">
+                        <h3>HIDDEN GEM: ${wildcard.champ.name}</h3>
+                        <div class="rec-tags">
+                            <span class="tag-match" style="color:#ffaaaa">${reasonText}</span>
+                        </div>
                     </div>
+                    <div class="rec-score" style="color:#ff5c5c">${Math.round(wildcard.score)}점</div>
                 </div>`;
         }
 
-        const resArea = document.getElementById('result-area');
-        resArea.style.display = 'block';
-        resArea.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('result-area').style.display = 'block';
+        document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
     }
 </script>
 
