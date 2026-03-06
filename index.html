@@ -1,154 +1,670 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>PICK.GG - LoL Pick Simulator</title>
-
 <style>
-/* === 기존 스타일 유지 (생략 없음) === */
 :root{
---bg:#010a13;--box:#1e2328;--gold:#c8aa6e;--danger:#ff4444;
+  --bg:#0a0f16;
+  --panel:#121821;
+  --panel-2:#1a2330;
+  --line:#263142;
+  --gold:#c8aa6e;
+  --gold-soft:#e7d3a8;
+  --text:#e8edf5;
+  --muted:#93a1b5;
+  --blue:#2f80ed;
+  --red:#ff5c5c;
+  --green:#21c17a;
+  --shadow:0 18px 50px rgba(0,0,0,.35);
+  --radius:18px;
 }
-body{margin:0;background:#000;color:#eee;font-family:Segoe UI;display:flex;justify-content:center;align-items:center;min-height:100vh}
-.container{width:100%;max-width:950px;background:var(--box);border:2px solid #463714;padding:40px}
-.site-logo h1{color:var(--gold);font-size:3rem;margin:0}
-.step{display:none}.step.active{display:block}
-.btn{border:1px solid var(--gold);background:#111;color:var(--gold);padding:10px 25px;cursor:pointer}
-.btn:hover{background:var(--gold);color:#000}
-.champ-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px;height:420px;overflow:auto}
-.champ-card{cursor:pointer;text-align:center}
-.champ-card img{width:100%}
-.recommend-card{display:flex;gap:15px;background:#181818;margin:10px 0;padding:15px;border-left:4px solid var(--gold)}
-.recommend-card.wildcard{border-left-color:var(--danger);background:#251010}
-.rec-score{margin-left:auto;font-size:20px;font-weight:bold}
+*{box-sizing:border-box}
+html,body{margin:0;background:radial-gradient(circle at top,#101826 0,#090d14 42%,#05070b 100%);color:var(--text);font-family:"Segoe UI","Noto Sans KR",sans-serif}
+body{min-height:100vh;padding:20px}
+button,input,select{font:inherit}
+.container{width:100%;max-width:1180px;margin:0 auto;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}
+.hero{padding:28px 30px 20px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,rgba(200,170,110,.08),rgba(47,128,237,.06))}
+.brand{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.site-logo h1{margin:0;color:var(--gold);font-size:clamp(2rem,4vw,3.2rem);letter-spacing:.03em}
+.site-logo p{margin:8px 0 0;color:var(--gold-soft);font-size:15px}
+.hero-note{max-width:420px;color:var(--muted);font-size:13px;line-height:1.6}
+.content{padding:22px}
+.stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.step-chip{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;min-height:78px}
+.step-chip.active{border-color:var(--gold);box-shadow:inset 0 0 0 1px rgba(200,170,110,.25)}
+.step-chip.done{border-color:rgba(33,193,122,.45)}
+.step-num{width:28px;height:28px;border-radius:999px;border:1px solid var(--line);display:grid;place-items:center;font-weight:800;color:var(--muted);font-size:12px;flex:0 0 auto}
+.step-chip.active .step-num{border-color:var(--gold);color:var(--gold)}
+.step-chip.done .step-num{border-color:var(--green);color:var(--green)}
+.step-title{font-weight:800;font-size:13px}
+.step-desc{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.45}
+.section{display:none}
+.section.active{display:block}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.panel + .panel{margin-top:16px}
+.section-title{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.section-title h2{margin:0;font-size:22px}
+.section-sub{color:var(--muted);font-size:13px;margin-top:6px;line-height:1.5}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--gold);background:#111722;color:var(--gold);padding:11px 18px;border-radius:12px;cursor:pointer;transition:.18s ease;font-weight:700}
+.btn:hover{background:var(--gold);color:#111}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--gold);color:#111}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.ghost{border-color:var(--line);color:var(--text)}
+.btn.ghost:hover{background:#1b2431;color:#fff}
+.btn.red{border-color:rgba(255,92,92,.5);color:#ffb1b1}
+.btn.red:hover{background:var(--red);color:#fff}
+.lane-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.lane-card{background:linear-gradient(180deg,#131b26,#0e141d);border:1px solid var(--line);border-radius:18px;padding:18px 12px;text-align:center;cursor:pointer;transition:.18s ease}
+.lane-card:hover{transform:translateY(-2px);border-color:rgba(200,170,110,.55)}
+.lane-card.active{border-color:var(--gold);box-shadow:inset 0 0 0 1px rgba(200,170,110,.25);background:linear-gradient(180deg,#1b2533,#111824)}
+.lane-card .icon{font-size:24px;margin-bottom:8px}
+.lane-card .name{font-weight:800}
+.lane-card .meta{font-size:12px;color:var(--muted);margin-top:6px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
+.search-wrap{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.search{min-width:230px;background:#0d131c;border:1px solid var(--line);border-radius:12px;color:var(--text);padding:11px 12px}
+.filter-chip{border:1px solid var(--line);background:#0d131c;color:var(--muted);padding:9px 12px;border-radius:999px;font-size:13px}
+.layout-2{display:grid;grid-template-columns:1.35fr .95fr;gap:16px}
+.champ-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:12px;max-height:560px;overflow:auto;padding-right:4px}
+.champ-card{border:1px solid var(--line);background:linear-gradient(180deg,#131a24,#0d131b);border-radius:14px;padding:10px;cursor:pointer;transition:.16s ease;position:relative}
+.champ-card:hover{border-color:rgba(200,170,110,.55);transform:translateY(-2px)}
+.champ-card img{width:100%;aspect-ratio:1/1;border-radius:10px;object-fit:cover;display:block;background:#0a0f16}
+.champ-card .name{margin-top:8px;font-size:13px;font-weight:700;text-align:center;line-height:1.25}
+.champ-card .tags{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:7px}
+.tag{font-size:10px;padding:4px 6px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:#111722}
+.champ-card.selected{border-color:var(--green);box-shadow:inset 0 0 0 1px rgba(33,193,122,.25)}
+.champ-card.selected::after{content:'POOL';position:absolute;top:8px;right:8px;background:rgba(33,193,122,.16);color:#6ef0af;border:1px solid rgba(33,193,122,.4);padding:4px 6px;border-radius:999px;font-size:10px;font-weight:800}
+.champ-card.banned{border-color:rgba(255,92,92,.55);opacity:.72;filter:grayscale(.2)}
+.champ-card.banned::after{content:'BAN';position:absolute;top:8px;right:8px;background:rgba(255,92,92,.14);color:#ffb1b1;border:1px solid rgba(255,92,92,.4);padding:4px 6px;border-radius:999px;font-size:10px;font-weight:800}
+.side-box{border:1px solid var(--line);border-radius:16px;background:var(--panel-2);padding:14px}
+.side-box h3{margin:0 0 10px;font-size:15px}
+.list-inline{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:#101721;font-size:12px;color:var(--text)}
+.pill.muted{color:var(--muted)}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.kpi-card{border:1px solid var(--line);border-radius:14px;background:#101721;padding:12px}
+.kpi-card .label{color:var(--muted);font-size:12px}
+.kpi-card .value{margin-top:8px;font-size:18px;font-weight:800}
+.tip{font-size:13px;color:var(--muted);line-height:1.55}
+.recommend-list{display:flex;flex-direction:column;gap:14px}
+.recommend-card{display:grid;grid-template-columns:88px 1fr auto;gap:16px;background:linear-gradient(180deg,#141c27,#10161f);margin:0;padding:16px;border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:16px;align-items:center}
+.recommend-card img{width:88px;height:88px;border-radius:14px;object-fit:cover;background:#0a0f16}
+.recommend-card.wildcard{border-left-color:var(--red);background:linear-gradient(180deg,#231419,#161015)}
+.rec-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;min-width:54px;height:28px;border-radius:999px;background:rgba(200,170,110,.12);border:1px solid rgba(200,170,110,.35);font-size:12px;font-weight:800;color:var(--gold-soft)}
+.rank-badge.red{background:rgba(255,92,92,.14);border-color:rgba(255,92,92,.35);color:#ffb1b1}
+.rec-name{font-size:19px;font-weight:800}
+.reason-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.reason{font-size:11px;padding:6px 8px;border-radius:999px;background:#0f1520;border:1px solid var(--line);color:var(--muted)}
+.breakdown{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.65}
+.rec-score{min-width:78px;text-align:right;font-size:30px;font-weight:900;color:var(--gold-soft)}
+.summary-box{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+.summary-stat{padding:14px;border:1px solid var(--line);background:#0f1520;border-radius:16px}
+.summary-stat .label{font-size:12px;color:var(--muted)}
+.summary-stat .value{margin-top:8px;font-size:18px;font-weight:800}
+.footer-note{margin-top:16px;color:var(--muted);font-size:12px;line-height:1.6}
+.empty{padding:28px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:16px;background:#0d131c}
+@media (max-width:980px){
+  .lane-grid{grid-template-columns:repeat(3,1fr)}
+  .layout-2{grid-template-columns:1fr}
+  .stepper{grid-template-columns:repeat(2,1fr)}
+  .summary-box{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:640px){
+  body{padding:10px}
+  .hero{padding:22px 18px 18px}
+  .content{padding:14px}
+  .lane-grid{grid-template-columns:repeat(2,1fr)}
+  .stepper{grid-template-columns:1fr}
+  .champ-grid{grid-template-columns:repeat(3,1fr);max-height:none}
+  .recommend-card{grid-template-columns:70px 1fr;gap:12px}
+  .recommend-card img{width:70px;height:70px}
+  .rec-score{grid-column:2;min-width:0;text-align:left;font-size:24px}
+  .summary-box{grid-template-columns:1fr}
+}
 </style>
 </head>
-
 <body>
 <div class="container">
+  <div class="hero">
+    <div class="brand">
+      <div class="site-logo">
+        <h1>PICK.GG</h1>
+        <p>승리를 위한 롤 픽 시뮬레이터 · 챔프풀 기반 추천</p>
+      </div>
+      <div class="hero-note">
+        내 라인, 내가 할 수 있는 챔피언, 금지 챔피언을 반영해서 추천 점수와 이유를 보여줍니다. 아직 실제 밴픽 API 연동 전 단계라서 현재는 로컬 시뮬레이터 버전입니다.
+      </div>
+    </div>
+  </div>
 
-<div class="site-logo">
-<h1>PICK.GG</h1>
-<p>승리를 위한 베스트 픽 시뮬레이터</p>
-</div>
+  <div class="content">
+    <div class="stepper" id="stepper"></div>
 
-<div id="step-1" class="step active">
-<h2>라인 선택</h2>
-<button class="btn" onclick="selectLane(event,'TOP')">TOP</button>
-<button class="btn" onclick="selectLane(event,'JUNGLE')">JUNGLE</button>
-<button class="btn" onclick="selectLane(event,'MID')">MID</button>
-<button class="btn" onclick="selectLane(event,'ADC')">ADC</button>
-<button class="btn" onclick="selectLane(event,'SUPPORT')">SUPPORT</button>
-<br><br>
-<button class="btn" onclick="goToStep(2)">다음</button>
-</div>
+    <section id="step-1" class="section active panel">
+      <div class="section-title">
+        <div>
+          <h2>1. 라인 선택</h2>
+          <div class="section-sub">먼저 내가 플레이할 라인을 선택하세요. 이후 해당 라인에 맞는 챔피언 풀만 보여줍니다.</div>
+        </div>
+        <button class="btn ghost" id="resetAllBtn">초기화</button>
+      </div>
+      <div class="lane-grid" id="laneGrid"></div>
+      <div class="row" style="justify-content:flex-end;margin-top:16px">
+        <button class="btn primary" id="toPoolBtn" disabled>다음</button>
+      </div>
+    </section>
 
-<div id="step-2" class="step">
-<h2>내 챔피언 풀</h2>
-<div id="pool-grid" class="champ-grid"></div>
-<button class="btn" onclick="goToStep(3)">밴</button>
-</div>
+    <section id="step-2" class="section panel">
+      <div class="section-title">
+        <div>
+          <h2>2. 내 챔피언 풀 선택</h2>
+          <div class="section-sub">클릭하면 챔프풀에 추가됩니다. 다시 클릭하면 해제됩니다. 최소 2개 이상 고르면 추천 품질이 더 좋아집니다.</div>
+        </div>
+        <div class="row">
+          <button class="btn ghost" id="autoFillBtn">추천용 예시 풀</button>
+          <button class="btn" id="toBanBtn">다음: 밴 선택</button>
+        </div>
+      </div>
+      <div class="layout-2">
+        <div class="panel" style="padding:14px">
+          <div class="toolbar">
+            <div class="search-wrap">
+              <input id="champSearch" class="search" type="text" placeholder="챔피언 이름 검색" />
+              <span class="filter-chip" id="laneFilterChip">라인: -</span>
+            </div>
+            <div class="row">
+              <button class="btn ghost" id="clearPoolBtn">풀 비우기</button>
+            </div>
+          </div>
+          <div id="pool-grid" class="champ-grid"></div>
+        </div>
 
-<div id="step-3" class="step">
-<h2>추천 결과</h2>
-<button class="btn" onclick="getRecommendation()">추천 실행</button>
-<div id="recommendation-list"></div>
-</div>
+        <div>
+          <div class="side-box">
+            <h3>선택한 챔프풀</h3>
+            <div id="poolPills" class="list-inline"></div>
+            <div class="tip" style="margin-top:10px">한 챔피언만 선택하면 추천 결과가 단조로워질 수 있습니다. 탱커/캐리/안전픽을 섞으면 더 현실적인 추천이 나옵니다.</div>
+          </div>
+          <div class="side-box" style="margin-top:12px">
+            <h3>현재 풀 요약</h3>
+            <div class="kpi">
+              <div class="kpi-card"><div class="label">챔프 수</div><div class="value" id="poolCountKpi">0</div></div>
+              <div class="kpi-card"><div class="label">탱커 평균</div><div class="value" id="poolTankKpi">0.0</div></div>
+              <div class="kpi-card"><div class="label">안정성 평균</div><div class="value" id="poolSafeKpi">0.0</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
+    <section id="step-3" class="section panel">
+      <div class="section-title">
+        <div>
+          <h2>3. 밴 고려</h2>
+          <div class="section-sub">현재 게임에서 못 쓰는 챔피언을 골라 제외하세요. 내 챔프풀에 있는 챔피언도 밴 처리하면 추천에서 빠집니다.</div>
+        </div>
+        <div class="row">
+          <button class="btn ghost" id="clearBanBtn">밴 초기화</button>
+          <button class="btn" id="toResultBtn">다음: 결과 보기</button>
+        </div>
+      </div>
+      <div class="layout-2">
+        <div class="panel" style="padding:14px">
+          <div class="toolbar">
+            <div class="search-wrap">
+              <input id="banSearch" class="search" type="text" placeholder="밴할 챔피언 검색" />
+              <span class="filter-chip">클릭 = 밴/해제</span>
+            </div>
+          </div>
+          <div id="ban-grid" class="champ-grid"></div>
+        </div>
+        <div>
+          <div class="side-box">
+            <h3>현재 밴 목록</h3>
+            <div id="banPills" class="list-inline"></div>
+            <div class="tip" style="margin-top:10px">실전에서는 OP 챔피언, 내가 다루기 어려운 카운터, 우리 조합을 망치는 픽 위주로 체크하면 됩니다.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="step-4" class="section panel">
+      <div class="section-title">
+        <div>
+          <h2>4. 추천 결과</h2>
+          <div class="section-sub">메타 점수, 챔프풀 적합도, 조합 안정성, 시너지 여부를 합산해 상위 추천을 보여줍니다.</div>
+        </div>
+        <div class="row">
+          <button class="btn ghost" id="backToBanBtn">이전</button>
+          <button class="btn primary" id="recommendBtn">추천 실행</button>
+        </div>
+      </div>
+
+      <div class="summary-box">
+        <div class="summary-stat"><div class="label">선택 라인</div><div class="value" id="summaryLane">-</div></div>
+        <div class="summary-stat"><div class="label">챔프풀 수</div><div class="value" id="summaryPoolCount">0</div></div>
+        <div class="summary-stat"><div class="label">밴 수</div><div class="value" id="summaryBanCount">0</div></div>
+        <div class="summary-stat"><div class="label">추천 대상 수</div><div class="value" id="summaryCandidateCount">0</div></div>
+      </div>
+
+      <div id="recommendation-list" class="recommend-list"></div>
+      <div class="footer-note">현재 추천 로직은 고정 DB 기반 로컬 모델입니다. 다음 단계에서는 실제 티어/승률/카운터/시너지 데이터, 패치 버전 자동 반영, 팀 조합 입력까지 붙이면 훨씬 완성도가 올라갑니다.</div>
+    </section>
+  </div>
 </div>
 
 <script>
-/* ===============================
-   상수 / 유틸
-=============================== */
-const DDRAGON="14.23.1";
-const IMG=id=>`https://ddragon.leagueoflegends.com/cdn/${DDRAGON}/img/champion/${id}.png`;
+const DDRAGON = "14.23.1";
+const IMG = id => `https://ddragon.leagueoflegends.com/cdn/${DDRAGON}/img/champion/${id}.png`;
 
 function hashString(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function average(list,key){if(!list.length)return 0;return list.reduce((a,b)=>a+(b.stats[key]||0),0)/list.length}
+function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
 
-/* ===============================
-   챔피언 DB (요약본)
-=============================== */
-const DB=[
-{id:'Malphite',name:'말파이트',roles:['TOP'],stats:{meta:8,ad_ap:0,tankiness:10,cc:9,safety:6},synergy:['Yasuo']},
-{id:'Yasuo',name:'야스오',roles:['MID','TOP'],stats:{meta:6,ad_ap:10,tankiness:4,cc:5,safety:4},synergy:['Malphite']},
-{id:'Ornn',name:'오른',roles:['TOP'],stats:{meta:9,ad_ap:3,tankiness:10,cc:9,safety:7},synergy:[]},
-{id:'Zed',name:'제드',roles:['MID'],stats:{meta:6,ad_ap:10,tankiness:2,cc:1,safety:8},synergy:[]},
-{id:'Vayne',name:'베인',roles:['ADC'],stats:{meta:5,ad_ap:10,tankiness:2,cc:3,safety:4},synergy:['Lulu']}
+const LANES = [
+  {key:"TOP", label:"TOP", icon:"🛡️", desc:"탱커 · 브루저 · 카운터 중요"},
+  {key:"JUNGLE", label:"JUNGLE", icon:"🌲", desc:"주도권 · 갱킹 · 운영"},
+  {key:"MID", label:"MID", icon:"✨", desc:"메이킹 · 딜 밸런스"},
+  {key:"ADC", label:"ADC", icon:"🏹", desc:"후반 캐리 · 포지셔닝"},
+  {key:"SUPPORT", label:"SUPPORT", icon:"🕊️", desc:"이니시 · 보호 · 시야"},
 ];
 
-/* ===============================
-   상태
-=============================== */
-let state={lane:null,pool:[]};
+const DB = [
+  {id:'Malphite',name:'말파이트',roles:['TOP'],stats:{meta:8,ad_ap:2,tankiness:10,cc:9,safety:6},tags:['탱커','이니시'],synergy:['Yasuo','MissFortune'],anti:['Jayce','Tryndamere']},
+  {id:'Ornn',name:'오른',roles:['TOP'],stats:{meta:9,ad_ap:2,tankiness:10,cc:9,safety:7},tags:['탱커','한타'],synergy:['Sejuani','Orianna'],anti:['Camille']},
+  {id:'Camille',name:'카밀',roles:['TOP'],stats:{meta:8,ad_ap:9,tankiness:4,cc:5,safety:7},tags:['브루저','사이드'],synergy:['Galio'],anti:['Ornn','Aatrox']},
+  {id:'Renekton',name:'레넥톤',roles:['TOP'],stats:{meta:7,ad_ap:8,tankiness:6,cc:6,safety:6},tags:['브루저','초중반'],synergy:['Nidalee'],anti:['Yone']},
+  {id:'Jax',name:'잭스',roles:['TOP'],stats:{meta:7,ad_ap:8,tankiness:5,cc:4,safety:6},tags:['캐리','사이드'],synergy:['Sejuani'],anti:['Camille']},
 
-/* ===============================
-   Step 로직
-=============================== */
-function selectLane(e,lane){
-state={lane,pool:[]};
-document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
-document.getElementById('step-2').classList.add('active');
-renderPool();
+  {id:'Sejuani',name:'세주아니',roles:['JUNGLE'],stats:{meta:8,ad_ap:3,tankiness:9,cc:9,safety:7},tags:['탱커','이니시'],synergy:['Yasuo','Jax'],anti:['LeeSin']},
+  {id:'LeeSin',name:'리 신',roles:['JUNGLE'],stats:{meta:7,ad_ap:8,tankiness:4,cc:6,safety:6},tags:['초반','메이킹'],synergy:['Renekton','Ahri'],anti:['Karthus']},
+  {id:'Viego',name:'비에고',roles:['JUNGLE'],stats:{meta:8,ad_ap:8,tankiness:4,cc:4,safety:6},tags:['캐리','리셋'],synergy:['Nautilus'],anti:['Poppy']},
+  {id:'Poppy',name:'뽀삐',roles:['JUNGLE','TOP'],stats:{meta:7,ad_ap:4,tankiness:8,cc:8,safety:7},tags:['유틸','카운터'],synergy:['Orianna'],anti:['LeeSin','Camille']},
+  {id:'Nidalee',name:'니달리',roles:['JUNGLE'],stats:{meta:6,ad_ap:7,tankiness:2,cc:2,safety:4},tags:['AP','포킹'],synergy:['Renekton'],anti:['Maokai']},
+
+  {id:'Yasuo',name:'야스오',roles:['MID','TOP'],stats:{meta:6,ad_ap:10,tankiness:4,cc:5,safety:4},tags:['AD','캐리'],synergy:['Malphite','Sejuani','Alistar'],anti:['Azir']},
+  {id:'Ahri',name:'아리',roles:['MID'],stats:{meta:8,ad_ap:3,tankiness:3,cc:6,safety:8},tags:['AP','픽메이킹'],synergy:['LeeSin','Vi'],anti:['Taliyah']},
+  {id:'Orianna',name:'오리아나',roles:['MID'],stats:{meta:8,ad_ap:2,tankiness:3,cc:7,safety:7},tags:['AP','한타'],synergy:['Malphite','Wukong','Poppy'],anti:['Zed']},
+  {id:'Zed',name:'제드',roles:['MID'],stats:{meta:6,ad_ap:10,tankiness:2,cc:1,safety:8},tags:['AD','암살'],synergy:['LeeSin'],anti:['Lissandra']},
+  {id:'Taliyah',name:'탈리야',roles:['MID','JUNGLE'],stats:{meta:8,ad_ap:2,tankiness:3,cc:7,safety:7},tags:['AP','운영'],synergy:['Nautilus'],anti:['Ahri']},
+
+  {id:'Jinx',name:'징크스',roles:['ADC'],stats:{meta:9,ad_ap:10,tankiness:2,cc:2,safety:5},tags:['하이퍼캐리','후반'],synergy:['Thresh','Lulu'],anti:['Draven']},
+  {id:'KaiSa',name:'카이사',roles:['ADC'],stats:{meta:8,ad_ap:9,tankiness:2,cc:2,safety:6},tags:['다재다능','캐리'],synergy:['Nautilus','Rell'],anti:['Xayah']},
+  {id:'Ezreal',name:'이즈리얼',roles:['ADC'],stats:{meta:7,ad_ap:8,tankiness:2,cc:1,safety:9},tags:['안전픽','포킹'],synergy:['Karma'],anti:['Nilah']},
+  {id:'MissFortune',name:'미스 포츈',roles:['ADC'],stats:{meta:7,ad_ap:8,tankiness:2,cc:2,safety:5},tags:['한타','광역딜'],synergy:['Malphite','Amumu'],anti:['Caitlyn']},
+  {id:'Vayne',name:'베인',roles:['ADC'],stats:{meta:5,ad_ap:10,tankiness:2,cc:3,safety:4},tags:['탱커킬러','캐리'],synergy:['Lulu'],anti:['Ashe']},
+
+  {id:'Nautilus',name:'노틸러스',roles:['SUPPORT'],stats:{meta:8,ad_ap:2,tankiness:8,cc:10,safety:5},tags:['이니시','CC'],synergy:['KaiSa','Samira','Viego'],anti:['Milio']},
+  {id:'Thresh',name:'쓰레쉬',roles:['SUPPORT'],stats:{meta:7,ad_ap:2,tankiness:6,cc:9,safety:7},tags:['유틸','플레이메이커'],synergy:['Jinx','Aphelios'],anti:['Zyra']},
+  {id:'Lulu',name:'룰루',roles:['SUPPORT'],stats:{meta:8,ad_ap:1,tankiness:3,cc:6,safety:8},tags:['보호','인챈터'],synergy:['Vayne','Jinx','KogMaw'],anti:['Rakan']},
+  {id:'Rell',name:'렐',roles:['SUPPORT'],stats:{meta:8,ad_ap:2,tankiness:8,cc:10,safety:5},tags:['이니시','한타'],synergy:['KaiSa','Yasuo'],anti:['Janna']},
+  {id:'Karma',name:'카르마',roles:['SUPPORT','MID'],stats:{meta:7,ad_ap:2,tankiness:3,cc:5,safety:8},tags:['라인전','유틸'],synergy:['Ezreal'],anti:['Nautilus']},
+];
+
+const state = {
+  lane: null,
+  pool: [],
+  bans: [],
+  step: 1,
+  searchPool: "",
+  searchBan: "",
+};
+
+const $ = id => document.getElementById(id);
+
+function setStep(n){
+  state.step = n;
+  document.querySelectorAll('.section').forEach(sec=>sec.classList.remove('active'));
+  $("step-"+n).classList.add('active');
+  renderStepper();
+  updateSummary();
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function goToStep(n){
-document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
-document.getElementById('step-'+n).classList.add('active');
+function renderStepper(){
+  const wrap = $('stepper');
+  const items = [
+    [1,'라인 선택','내 라인 지정'],
+    [2,'챔프풀 선택','내가 할 수 있는 픽'],
+    [3,'밴 고려','불가능한 픽 제외'],
+    [4,'추천 결과','점수와 이유 확인'],
+  ];
+  wrap.innerHTML = items.map(([n,title,desc])=>`
+    <div class="step-chip ${state.step===n?'active':''} ${state.step>n?'done':''}">
+      <div class="step-num">${n}</div>
+      <div>
+        <div class="step-title">${title}</div>
+        <div class="step-desc">${desc}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
-/* ===============================
-   Pool
-=============================== */
+function renderLanes(){
+  const wrap = $('laneGrid');
+  wrap.innerHTML = '';
+  LANES.forEach(lane=>{
+    const btn = document.createElement('button');
+    btn.className = 'lane-card' + (state.lane===lane.key ? ' active' : '');
+    btn.type = 'button';
+    btn.innerHTML = `<div class="icon">${lane.icon}</div><div class="name">${lane.label}</div><div class="meta">${lane.desc}</div>`;
+    btn.onclick = ()=>{
+      state.lane = lane.key;
+      state.pool = [];
+      state.bans = [];
+      renderLanes();
+      renderPool();
+      renderBanGrid();
+      renderPoolSide();
+      renderBanSide();
+      updateSummary();
+      $('toPoolBtn').disabled = false;
+      $('laneFilterChip').textContent = `라인: ${lane.label}`;
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+function getLaneChamps(){
+  return DB.filter(c=>c.roles.includes(state.lane));
+}
+
+function togglePool(id){
+  if(state.bans.includes(id)) return;
+  if(state.pool.includes(id)) state.pool = state.pool.filter(x=>x!==id);
+  else state.pool.push(id);
+  renderPool();
+  renderPoolSide();
+  updateSummary();
+}
+
+function toggleBan(id){
+  if(state.bans.includes(id)) state.bans = state.bans.filter(x=>x!==id);
+  else state.bans.push(id);
+  state.pool = state.pool.filter(x=>x!==id);
+  renderBanGrid();
+  renderPool();
+  renderPoolSide();
+  renderBanSide();
+  updateSummary();
+}
+
+function champCardHTML(c,{selected=false,banned=false}={}){
+  const tags = (c.tags||[]).slice(0,2).map(t=>`<span class="tag">${t}</span>`).join('');
+  return `
+    <img src="${IMG(c.id)}" alt="${c.name}" loading="lazy" onerror="this.style.opacity=.25" />
+    <div class="name">${c.name}</div>
+    <div class="tags">${tags}</div>
+  `;
+}
+
 function renderPool(){
-const g=document.getElementById('pool-grid');
-g.innerHTML='';
-DB.filter(c=>c.roles.includes(state.lane)).forEach(c=>{
-const d=document.createElement('div');
-d.className='champ-card';
-d.innerHTML=`<img src="${IMG(c.id)}"><div>${c.name}</div>`;
-d.onclick=()=>{if(!state.pool.includes(c.id))state.pool.push(c.id);};
-g.appendChild(d);
-});
+  const q = state.searchPool.trim().toLowerCase();
+  const wrap = $('pool-grid');
+  if(!state.lane){
+    wrap.innerHTML = '<div class="empty">먼저 라인을 선택해주세요.</div>';
+    return;
+  }
+  const list = getLaneChamps().filter(c=>!q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
+  wrap.innerHTML = '';
+  if(!list.length){
+    wrap.innerHTML = '<div class="empty">검색 결과가 없습니다.</div>';
+    return;
+  }
+  list.forEach(c=>{
+    const d = document.createElement('button');
+    d.type='button';
+    d.className = 'champ-card' + (state.pool.includes(c.id) ? ' selected' : '') + (state.bans.includes(c.id) ? ' banned' : '');
+    d.innerHTML = champCardHTML(c,{selected:state.pool.includes(c.id),banned:state.bans.includes(c.id)});
+    d.onclick = ()=>togglePool(c.id);
+    wrap.appendChild(d);
+  });
 }
 
-/* ===============================
-   추천 엔진
-=============================== */
+function renderBanGrid(){
+  const q = state.searchBan.trim().toLowerCase();
+  const wrap = $('ban-grid');
+  if(!state.lane){
+    wrap.innerHTML = '<div class="empty">먼저 라인을 선택해주세요.</div>';
+    return;
+  }
+  const list = getLaneChamps().filter(c=>!q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
+  wrap.innerHTML = '';
+  if(!list.length){
+    wrap.innerHTML = '<div class="empty">검색 결과가 없습니다.</div>';
+    return;
+  }
+  list.forEach(c=>{
+    const d = document.createElement('button');
+    d.type='button';
+    d.className = 'champ-card' + (state.bans.includes(c.id) ? ' banned' : '') + (state.pool.includes(c.id) ? ' selected' : '');
+    d.innerHTML = champCardHTML(c,{selected:state.pool.includes(c.id),banned:state.bans.includes(c.id)});
+    d.onclick = ()=>toggleBan(c.id);
+    wrap.appendChild(d);
+  });
+}
+
+function renderPoolSide(){
+  const pills = $('poolPills');
+  pills.innerHTML = '';
+  const poolList = DB.filter(c=>state.pool.includes(c.id));
+  if(!poolList.length){
+    pills.innerHTML = '<span class="pill muted">선택된 챔피언 없음</span>';
+  } else {
+    poolList.forEach(c=>{
+      const p = document.createElement('button');
+      p.type='button';
+      p.className='pill';
+      p.textContent = c.name + ' ×';
+      p.onclick = ()=>togglePool(c.id);
+      pills.appendChild(p);
+    });
+  }
+
+  $('poolCountKpi').textContent = String(poolList.length);
+  $('poolTankKpi').textContent = average(poolList,'tankiness').toFixed(1);
+  $('poolSafeKpi').textContent = average(poolList,'safety').toFixed(1);
+}
+
+function renderBanSide(){
+  const pills = $('banPills');
+  pills.innerHTML = '';
+  const banList = DB.filter(c=>state.bans.includes(c.id));
+  if(!banList.length){
+    pills.innerHTML = '<span class="pill muted">밴된 챔피언 없음</span>';
+  } else {
+    banList.forEach(c=>{
+      const p = document.createElement('button');
+      p.type='button';
+      p.className='pill';
+      p.textContent = c.name + ' ×';
+      p.onclick = ()=>toggleBan(c.id);
+      pills.appendChild(p);
+    });
+  }
+}
+
+function updateSummary(){
+  $('summaryLane').textContent = state.lane || '-';
+  $('summaryPoolCount').textContent = String(state.pool.length);
+  $('summaryBanCount').textContent = String(state.bans.length);
+  $('summaryCandidateCount').textContent = String(state.lane ? getLaneChamps().filter(c=>!state.bans.includes(c.id)).length : 0);
+}
+
+function goToPool(){ if(!state.lane) return; setStep(2); }
+function goToBan(){ if(!state.lane) return; setStep(3); }
+function goToResult(){ if(!state.lane) return; setStep(4); }
+
+function autoFillPool(){
+  if(!state.lane) return;
+  const laneChamps = getLaneChamps().filter(c=>!state.bans.includes(c.id));
+  state.pool = laneChamps.slice(0, Math.min(3, laneChamps.length)).map(c=>c.id);
+  renderPool();
+  renderPoolSide();
+  updateSummary();
+}
+
 function getRecommendation(){
-const seedStr=state.lane+'|'+state.pool.join(',');
-const rng=mulberry32(hashString(seedStr));
-const list=document.getElementById('recommendation-list');
-list.innerHTML='';
+  if(!state.lane){
+    $('recommendation-list').innerHTML = '<div class="empty">먼저 라인을 선택해주세요.</div>';
+    return;
+  }
 
-const ranked=DB.filter(c=>c.roles.includes(state.lane))
-.map(c=>{
-let score=c.stats.meta*2;
-let bd={meta:c.stats.meta*2,gap:0,synergy:0,seed:0};
+  const seedStr = state.lane + '|' + state.pool.slice().sort().join(',') + '|' + state.bans.slice().sort().join(',');
+  const rng = mulberry32(hashString(seedStr));
+  const list = $('recommendation-list');
+  list.innerHTML = '';
 
-if(c.stats.tankiness>7){bd.gap+=30;score+=30}
-if(state.pool.includes(c.id)){bd.synergy+=20;score+=20}
-bd.seed+=rng()*5;score+=bd.seed;
+  const poolChampions = DB.filter(c=>state.pool.includes(c.id));
+  const laneCandidates = getLaneChamps().filter(c=>!state.bans.includes(c.id));
 
-return{c,score,bd};
-}).sort((a,b)=>b.score-a.score);
+  if(!laneCandidates.length){
+    list.innerHTML = '<div class="empty">밴 때문에 추천 가능한 챔피언이 없습니다.</div>';
+    return;
+  }
 
-ranked.slice(0,3).forEach((r,i)=>{
-list.innerHTML+=`
-<div class="recommend-card">
-<img src="${IMG(r.c.id)}" width="64">
-<div>
-<b>BEST ${i+1}: ${r.c.name}</b><br>
-<span style="font-size:12px;color:#aaa">
-meta ${r.bd.meta} / gap ${r.bd.gap} / syn ${r.bd.synergy} / seed ${Math.round(r.bd.seed)}
-</span>
-</div>
-<div class="rec-score">${Math.round(r.score)}</div>
-</div>`;
-});
+  const avgTank = average(poolChampions,'tankiness');
+  const avgSafety = average(poolChampions,'safety');
+  const avgCC = average(poolChampions,'cc');
+  const poolIds = new Set(state.pool);
+
+  const ranked = laneCandidates.map(c=>{
+    let score = 0;
+    const bd = { meta:0, mastery:0, comp:0, synergy:0, safety:0, variety:0, random:0 };
+    const reasons = [];
+
+    bd.meta = c.stats.meta * 6;
+    score += bd.meta;
+    if(c.stats.meta >= 8) reasons.push('메타 상위권');
+
+    if(poolIds.has(c.id)){
+      bd.mastery += 22;
+      score += 22;
+      reasons.push('내 챔프풀 포함');
+    } else if(state.pool.length === 0) {
+      bd.mastery += 6;
+      score += 6;
+      reasons.push('챔프풀 미선택 상태');
+    }
+
+    if(avgTank < 5 && c.stats.tankiness >= 8){
+      bd.comp += 16;
+      score += 16;
+      reasons.push('조합 안정성 보완');
+    }
+    if(avgCC < 5 && c.stats.cc >= 7){
+      bd.comp += 12;
+      score += 12;
+      reasons.push('CC 부족 보완');
+    }
+    if(avgSafety < 5 && c.stats.safety >= 7){
+      bd.safety += 10;
+      score += 10;
+      reasons.push('안전픽 성향');
+    }
+
+    let synergyHit = 0;
+    poolChampions.forEach(p=>{
+      if((c.synergy||[]).includes(p.id) || (p.synergy||[]).includes(c.id)) synergyHit += 1;
+    });
+    if(synergyHit){
+      bd.synergy += synergyHit * 11;
+      score += bd.synergy;
+      reasons.push(`시너지 ${synergyHit}개`);
+    }
+
+    const duplicatePenalty = poolChampions.length && poolChampions.every(p => Math.abs((p.stats.tankiness||0) - (c.stats.tankiness||0)) < 2 && Math.abs((p.stats.safety||0) - (c.stats.safety||0)) < 2);
+    if(!poolIds.has(c.id) && !duplicatePenalty){
+      bd.variety += 8;
+      score += 8;
+      reasons.push('챔프풀 다양화');
+    }
+
+    bd.random = rng() * 4;
+    score += bd.random;
+
+    const wildcard = !poolIds.has(c.id) && c.stats.meta >= 8 && reasons.length >= 2;
+
+    return {c, score, bd, reasons, wildcard};
+  }).sort((a,b)=>b.score-a.score);
+
+  const top3 = ranked.slice(0,3);
+  const wildcard = ranked.find(x=>x.wildcard && !top3.some(t=>t.c.id===x.c.id));
+  const finalList = wildcard ? [...top3, wildcard] : top3;
+
+  list.innerHTML = finalList.map((r,i)=>{
+    const badge = r.wildcard ? '<span class="rank-badge red">와일드카드</span>' : `<span class="rank-badge">BEST ${i+1}</span>`;
+    const reasons = r.reasons.slice(0,4).map(t=>`<span class="reason">${t}</span>`).join('');
+    const bd = r.bd;
+    return `
+      <div class="recommend-card ${r.wildcard ? 'wildcard' : ''}">
+        <img src="${IMG(r.c.id)}" alt="${r.c.name}" />
+        <div>
+          <div class="rec-title">${badge}<div class="rec-name">${r.c.name}</div></div>
+          <div class="reason-list">${reasons || '<span class="reason">기본 추천</span>'}</div>
+          <div class="breakdown">
+            메타 ${Math.round(bd.meta)} · 챔프풀 ${Math.round(bd.mastery)} · 조합보완 ${Math.round(bd.comp)} · 시너지 ${Math.round(bd.synergy)} · 안전성 ${Math.round(bd.safety)} · 다양성 ${Math.round(bd.variety)}
+          </div>
+        </div>
+        <div class="rec-score">${Math.round(r.score)}</div>
+      </div>
+    `;
+  }).join('');
 }
+
+function resetAll(){
+  state.lane = null;
+  state.pool = [];
+  state.bans = [];
+  state.step = 1;
+  state.searchPool = '';
+  state.searchBan = '';
+  $('champSearch').value = '';
+  $('banSearch').value = '';
+  $('laneFilterChip').textContent = '라인: -';
+  $('toPoolBtn').disabled = true;
+  $('recommendation-list').innerHTML = '';
+  renderLanes();
+  renderPool();
+  renderBanGrid();
+  renderPoolSide();
+  renderBanSide();
+  updateSummary();
+  setStep(1);
+}
+
+function bindEvents(){
+  $('toPoolBtn').onclick = goToPool;
+  $('toBanBtn').onclick = goToBan;
+  $('toResultBtn').onclick = goToResult;
+  $('backToBanBtn').onclick = ()=>setStep(3);
+  $('recommendBtn').onclick = getRecommendation;
+  $('autoFillBtn').onclick = autoFillPool;
+  $('clearPoolBtn').onclick = ()=>{ state.pool = []; renderPool(); renderPoolSide(); updateSummary(); };
+  $('clearBanBtn').onclick = ()=>{ state.bans = []; renderBanGrid(); renderPool(); renderBanSide(); updateSummary(); };
+  $('resetAllBtn').onclick = resetAll;
+  $('champSearch').addEventListener('input', e=>{ state.searchPool = e.target.value; renderPool(); });
+  $('banSearch').addEventListener('input', e=>{ state.searchBan = e.target.value; renderBanGrid(); });
+}
+
+function init(){
+  renderStepper();
+  renderLanes();
+  renderPool();
+  renderBanGrid();
+  renderPoolSide();
+  renderBanSide();
+  updateSummary();
+  bindEvents();
+}
+
+init();
 </script>
 </body>
 </html>
